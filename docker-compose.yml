@@ -1,0 +1,90 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:10-alpine
+    environment:
+      POSTGRES_DB: celeryapp
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: dbpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - celeryapp_db:/var/lib/postgresql/data
+    networks:
+      - django_celery
+
+  redis:
+    image: redis:6.2
+    ports:
+      - "6379:6379"
+    command: "redis-server --appendonly yes"
+    networks:
+      - django_celery
+
+  worker:
+    build: .
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_ENGINE: django.db.backends.postgresql
+      DATABASE_NAME: celeryapp
+      DATABASE_USER: dbuser
+      DATABASE_PASSWORD: dbpass
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DJANGO_DEBUG: 1
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+    networks:
+      - django_celery
+    volumes:
+      - .:/code
+    command: "celery -A django_celery worker -l INFO --concurrency=4"
+
+  beat_worker:
+    build: .
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_ENGINE: django.db.backends.postgresql
+      DATABASE_NAME: celeryapp
+      DATABASE_USER: dbuser
+      DATABASE_PASSWORD: dbpass
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DJANGO_DEBUG: 1
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+    networks:
+      - django_celery
+    volumes:
+      - .:/code
+      - celerybeat_schedule:/var/run/celery
+    command: "celery -A django_celery beat -l INFO -s /var/run/celery/celerybeat-schedule"
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_ENGINE: django.db.backends.postgresql
+      DATABASE_NAME: celeryapp
+      DATABASE_USER: dbuser
+      DATABASE_PASSWORD: dbpass
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DJANGO_DEBUG: 1
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+    networks:
+      - django_celery
+    volumes:
+      - .:/code
+    command: bash -c "python ./manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  celeryapp_db:
+  celerybeat_schedule:
+
+networks:
+  django_celery:
+    name: django_celery_net
