@@ -22,41 +22,29 @@ services:
     networks:
       - django_celery
 
-  worker:
+  celery_worker:
     build: .
+    env_file:
+      - .env
     environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_ENGINE: django.db.backends.postgresql
-      DATABASE_NAME: celeryapp
-      DATABASE_USER: dbuser
-      DATABASE_PASSWORD: dbpass
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
-      DJANGO_DEBUG: 1
-      CELERY_BROKER_URL: "redis://redis:6379/0"
+      DJANGO_LOG_LEVEL: "DEBUG"
     networks:
       - django_celery
     volumes:
       - .:/code
+    working_dir: /code
     command: "celery -A django_celery worker -l INFO --concurrency=4"
 
-  beat_worker:
+  celery_beat:
     build: .
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_ENGINE: django.db.backends.postgresql
-      DATABASE_NAME: celeryapp
-      DATABASE_USER: dbuser
-      DATABASE_PASSWORD: dbpass
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
-      DJANGO_DEBUG: 1
-      CELERY_BROKER_URL: "redis://redis:6379/0"
+    env_file:
+      - .env
     networks:
       - django_celery
     volumes:
       - .:/code
       - celerybeat_schedule:/var/run/celery
+    working_dir: /code
     command: "celery -A django_celery beat -l INFO -s /var/run/celery/celerybeat-schedule"
 
   app:
@@ -65,21 +53,14 @@ services:
       - "8000:8000"
     depends_on:
       - db
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_ENGINE: django.db.backends.postgresql
-      DATABASE_NAME: celeryapp
-      DATABASE_USER: dbuser
-      DATABASE_PASSWORD: dbpass
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
-      DJANGO_DEBUG: 1
-      CELERY_BROKER_URL: "redis://redis:6379/0"
+    env_file:
+      - .env
     networks:
       - django_celery
     volumes:
       - .:/code
-    command: bash -c "python ./manage.py runserver 0.0.0.0:8000"
+    working_dir: /code
+    command: bash -c "python ./manage.py migrate && python ./manage.py runserver 0.0.0.0:8000"
 
 volumes:
   celeryapp_db:

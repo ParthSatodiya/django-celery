@@ -45,5 +45,4 @@ def find_duplicate_quotes(self):
     duplicate_quotes = Quote.objects.values("quote", "author").annotate(d_count=Count("id")).order_by().filter(d_count__gt=1)
     logger.info(f"{self.request.id} task: {len(duplicate_quotes)} duplicate quotes found")
 
-    # <Code to remove duplicates>
     return duplicate_quotes

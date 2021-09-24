@@ -28,15 +28,9 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'add-every-10-seconds': {
         'task': 'quotes_scraper.tasks.find_duplicate_quotes',
-        'schedule': 30.0,
+        'schedule': 10.0,
     },
 }
-
-# @app.on_after_finalize.connect
-# def setup_periodic_tasks(sender, **kwargs):
-#
-#     # Executes find_duplicate_quotes every 10 seconds
-#     sender.add_periodic_task(10.0, quotes_scraper.tasks.find_duplicate_quotes.delay())
 
 @app.task(bind=True)
 def debug_task(self):
