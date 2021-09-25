@@ -24,6 +24,8 @@ services:
 
   celery_worker:
     build: .
+    depends_on:
+      - redis
     env_file:
       - .env
     environment:
@@ -37,6 +39,8 @@ services:
 
   celery_beat:
     build: .
+    depends_on:
+      - redis
     env_file:
       - .env
     networks:
